@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sri Haridra Collections | One Gram Gold & Jewellery</title>
+  <link rel="icon" type="image/jpeg" href="logo.jpg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-amber-50/30 text-stone-800 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-amber-200 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <img
+          src="logo.jpg"
+          alt="Sri Haridra Collections Logo"
+          class="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-contain p-1 border border-amber-300 bg-white shrink-0"
+        />
+        <div>
+          <h1 class="text-lg sm:text-2xl font-bold tracking-wide text-amber-900 leading-tight">
+            Sri Haridra Collections
+          </h1>
+          <p class="text-xs text-amber-700">Besides Seshmahal Theater, Tadepalligudem, West Godavari Dist - 534101</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="admin.html" class="text-xs sm:text-sm text-stone-600 hover:text-amber-900 underline">
+          Admin
+        </a>
+        <button onclick="toggleCart(true)" class="relative bg-amber-800 hover:bg-amber-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition">
+          <span>Cart</span>
+          <span id="cart-count" class="bg-amber-200 text-amber-950 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search, Main Category (MEN/WOMEN) & Subcategories -->
+    <div class="max-w-6xl mx-auto px-4 pb-3 space-y-2.5">
+      <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+        <input
+          id="search-input"
+          type="text"
+          oninput="renderProducts()"
+          placeholder="Search harams, chains, bangles, rings, payals..."
+          class="flex-1 border border-amber-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+        />
+        <div id="main-category-tabs" class="flex gap-2 shrink-0"></div>
+      </div>
+
+      <div id="subcategory-tabs" class="flex gap-1.5 overflow-x-auto pb-1"></div>
+    </div>
+  </header>
+
+  <!-- Main Products Grid -->
+  <main class="max-w-6xl w-full mx-auto px-4 py-6 flex-1">
+    <div id="products-status" class="text-center py-12 text-stone-500">Loading jewellery collection...</div>
+    <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"></div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-amber-950 text-amber-100 text-center py-5 px-4 text-xs space-y-1">
+    <div class="flex items-center justify-center gap-2 mb-1">
+      <img src="logo.jpg" alt="Sri Haridra Collections Logo" class="w-9 h-9 rounded-full object-contain p-0.5 border border-amber-400 bg-white" />
+      <p class="font-semibold text-sm text-amber-200">Sri Haridra Collections</p>
+    </div>
+    <p>Besides Seshmahal Theater, Tadepalligudem, West Godavari Dist - 534101</p>
+    <p>WhatsApp Orders: +91 6305085353</p>
+    <p class="text-amber-300/80 pt-1">© <span id="year"></span> Sri Haridra Collections. All rights reserved.</p>
+  </footer>
+
+  <!-- Cart Slide-Over Drawer -->
+  <div id="cart-backdrop" onclick="toggleCart(false)" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
+  <aside id="cart-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white z-50 shadow-2xl transform translate-x-full transition-transform duration-200 flex flex-col">
+    <div class="p-4 border-b flex items-center justify-between bg-amber-50">
+      <h2 class="font-bold text-lg text-amber-950">Your Shopping Cart</h2>
+      <button onclick="toggleCart(false)" class="text-stone-600 hover:text-black text-xl px-2">✕</button>
+    </div>
+
+    <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+
+    <div class="p-4 border-t bg-stone-50 space-y-3">
+      <div class="flex justify-between text-sm">
+        <span>Total Items:</span>
+        <span id="cart-total-items" class="font-semibold">0</span>
+      </div>
+      <div class="flex justify-between text-base font-bold text-amber-950">
+        <span>Total Amount:</span>
+        <span id="cart-total-price">₹0</span>
+      </div>
+
+      <!-- Customer Details Form -->
+      <div class="space-y-2 pt-2 border-t">
+        <input id="cust-name" type="text" placeholder="Your Full Name *" class="w-full border rounded-lg px-3 py-2 text-sm" required />
+        <input id="cust-phone" type="tel" placeholder="Mobile Number *" class="w-full border rounded-lg px-3 py-2 text-sm" required />
+        <textarea id="cust-address" rows="2" placeholder="Full Delivery Address & Pincode *" class="w-full border rounded-lg px-3 py-2 text-sm" required></textarea>
+      </div>
+
+      <button onclick="checkoutWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition">
+        Order on WhatsApp
+      </button>
+    </div>
+  </aside>
+
+  <script>
+    const SUPABASE_URL = "https://oecbemtamkifqnxjhrpw.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_UxtVebo9sasnQEC6yU0JNw_xJlVnENO";
+    const WHATSAPP_NUMBER = "916305085353";
+    const STORE_ADDRESS = "Besides Seshmahal Theater, Tadepalligudem, West Godavari Dist - 534101";
+
+    const CATEGORY_TREE = {
+      MEN: [
+        "Bracelight(Kadiyam And Chain Model)",
+        "Chains(Long And Short Chais)",
+        "Rings"
+      ],
+      WOMEN: [
+        "Short Chains",
+        "Long Chains",
+        "Side Locket Thali Chains",
+        "Suthralu",
+        "Ear Rings",
+        "Women Bracelights(Kadiyam And Chain Model)",
+        "Rings",
+        "Payals",
+        "Haram Sets",
+        "Nackles Sets",
+        "Total Bridal Sets",
+        "Hip Belts(Vaddanam(Plain And Heavy Models)",
+        "All CZ Items",
+        "Bangles",
+        "Black Beads",
+        "All Colour Beads",
+        "Chandra Haram",
+        "Pendent Sets",
+        "Vankis",
+        "Tikks",
+        "Hair Accosaries",
+        "Chempa Swaralu"
+      ]
+    };
+
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let selectedCategory = "All";
+    let selectedSubcategory = "All";
+    let allProducts = [];
+    let cart = JSON.parse(localStorage.getItem("haridra_cart") || "[]");
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    function getSubcategories() {
+      if (selectedCategory === "All") {
+        return ["All", ...new Set([...CATEGORY_TREE.MEN, ...CATEGORY_TREE.WOMEN])];
+      }
+      return ["All", ...(CATEGORY_TREE[selectedCategory] || [])];
+    }
+
+    function renderCategoryTabs() {
+      const mainCats = ["All", "MEN", "WOMEN"];
+      const mainEl = document.getElementById("main-category-tabs");
+      mainEl.innerHTML = mainCats.map(cat => {
+        const active = cat === selectedCategory;
+        return `<button onclick="selectMainCategory('${cat}')" class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition ${
+          active ? "bg-amber-900 text-white" : "bg-amber-100 text-amber-950 hover:bg-amber-200"
+        }">${cat}</button>`;
+      }).join("");
+
+      const subs = getSubcategories();
+      if (!subs.includes(selectedSubcategory)) {
+        selectedSubcategory = "All";
+      }
+
+      const subEl = document.getElementById("subcategory-tabs");
+      subEl.innerHTML = subs.map(sub => {
+        const active = sub === selectedSubcategory;
+        const safe = sub.replace(/'/g, "\\'");
+        const label = sub === "All" ? "All Subcategories" : sub;
+        return `<button onclick="selectSubcategory('${safe}')" class="px-3 py-1 rounded-full text-xs whitespace-nowrap transition ${
+          active ? "bg-amber-700 text-white font-medium" : "bg-stone-100 text-stone-700 hover:bg-amber-100"
+        }">${label}</button>`;
+      }).join("");
+    }
+
+    function selectMainCategory(cat) {
+      selectedCategory = cat;
+      selectedSubcategory = "All";
+      renderCategoryTabs();
+      renderProducts();
+    }
+
+    function selectSubcategory(sub) {
+      selectedSubcategory = sub;
+      renderCategoryTabs();
+      renderProducts();
+    }
+
+    async function loadProducts() {
+      const statusEl = document.getElementById("products-status");
+      const { data, error } = await db
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        statusEl.textContent = "Failed to load products: " + error.message;
+        return;
+      }
+
+      allProducts = data || [];
+      statusEl.classList.add("hidden");
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const query = document.getElementById("search-input").value.trim().toLowerCase();
+      const grid = document.getElementById("products-grid");
+      const statusEl = document.getElementById("products-status");
+
+      const filtered = allProducts.filter(p => {
+        const pCat = (p.category || "").trim().toLowerCase();
+        const pSub = (p.subcategory || "").trim().toLowerCase();
+        const matchesCat = selectedCategory === "All" || pCat === selectedCategory.toLowerCase();
+        const matchesSub = selectedSubcategory === "All" || pSub === selectedSubcategory.toLowerCase();
+        const matchesSearch = !query ||
+          (p.name || "").toLowerCase().includes(query) ||
+          pCat.includes(query) ||
+          pSub.includes(query);
+        return matchesCat && matchesSub && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = "";
+        statusEl.textContent = "No items found in this category yet.";
+        statusEl.classList.remove("hidden");
+        return;
+      }
+
+      statusEl.classList.add("hidden");
+      grid.innerHTML = filtered.map(p => {
+        const imgSrc = p.image_url || "logo.jpg";
+        const metaLine = [p.category, p.subcategory].filter(Boolean).join(" • ");
+        return `
+          <div class="bg-white rounded-xl border border-amber-100 shadow-sm overflow-hidden flex flex-col">
+            <div class="aspect-square bg-amber-50 relative overflow-hidden">
+              <img src="${imgSrc}" alt="${p.name}" class="w-full h-full object-cover" loading="lazy" />
+              ${!p.in_stock ? `<span class="absolute top-2 left-2 bg-rose-600 text-white text-xs font-semibold px-2.5 py-1 rounded">Out of Stock</span>` : ""}
+            </div>
+            <div class="p-3.5 flex-1 flex flex-col justify-between gap-3">
+              <div>
+                <p class="text-[11px] uppercase tracking-wider text-amber-700 font-medium line-clamp-1">${metaLine}</p>
+                <h3 class="font-semibold text-sm sm:text-base text-stone-900 line-clamp-2 mt-0.5">${p.name}</h3>
+              </div>
+              <div class="flex items-center justify-between gap-2 pt-1">
+                <span class="font-bold text-amber-950 text-base">₹${Number(p.price).toLocaleString("en-IN")}</span>
+                <button
+                  ${!p.in_stock ? "disabled" : ""}
+                  onclick="addToCart('${p.id}')"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    p.in_stock
+                      ? "bg-amber-800 hover:bg-amber-900 text-white"
+                      : "bg-stone-200 text-stone-500 cursor-not-allowed"
+                  }"
+                >
+                  ${p.in_stock ? "Add to Cart" : "Sold Out"}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function saveCart() {
+      localStorage.setItem("haridra_cart", JSON.stringify(cart));
+      renderCart();
+    }
+
+    function addToCart(productId) {
+      const product = allProducts.find(p => p.id === productId);
+      if (!product || !product.in_stock) return;
+
+      const existing = cart.find(item => item.id === productId);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cart.push({
+          id: product.id,
+          name: product.name,
+          price: Number(product.price),
+          image_url: product.image_url || "logo.jpg",
+          qty: 1
+        });
+      }
+      saveCart();
+      toggleCart(true);
+    }
+
+    function updateQty(index, delta) {
+      cart[index].qty += delta;
+      if (cart[index].qty <= 0) {
+        cart.splice(index, 1);
+      }
+      saveCart();
+    }
+
+    function toggleCart(open) {
+      const drawer = document.getElementById("cart-drawer");
+      const backdrop = document.getElementById("cart-backdrop");
+      if (open) {
+        backdrop.classList.remove("hidden");
+        drawer.classList.remove("translate-x-full");
+      } else {
+        backdrop.classList.add("hidden");
+        drawer.classList.add("translate-x-full");
+      }
+    }
+
+    function renderCart() {
+      const container = document.getElementById("cart-items");
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      const totalPrice = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
+
+      document.getElementById("cart-count").textContent = totalItems;
+      document.getElementById("cart-total-items").textContent = totalItems;
+      document.getElementById("cart-total-price").textContent = "₹" + totalPrice.toLocaleString("en-IN");
+
+      if (cart.length === 0) {
+        container.innerHTML = `<p class="text-center text-stone-400 py-10 text-sm">Your cart is empty.</p>`;
+        return;
+      }
+
+      container.innerHTML = cart.map((item, idx) => `
+        <div class="flex gap-3 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100 items-center">
+          <img src="${item.image_url || 'logo.jpg'}" alt="${item.name}" class="w-14 h-14 object-cover rounded" />
+          <div class="flex-1 min-w-0">
+            <h4 class="text-sm font-semibold truncate">${item.name}</h4>
+            <p class="text-xs text-amber-900 font-medium">₹${(item.price * item.qty).toLocaleString("en-IN")}</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="updateQty(${idx}, -1)" class="w-6 h-6 rounded bg-stone-200 font-bold text-xs">-</button>
+            <span class="text-xs font-semibold w-4 text-center">${item.qty}</span>
+            <button onclick="updateQty(${idx}, 1)" class="w-6 h-6 rounded bg-amber-800 text-white font-bold text-xs">+</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function checkoutWhatsApp() {
+      if (cart.length === 0) {
+        alert("Please add at least one item to your cart.");
+        return;
+      }
+
+      const name = document.getElementById("cust-name").value.trim();
+      const phone = document.getElementById("cust-phone").value.trim();
+      const address = document.getElementById("cust-address").value.trim();
+
+      if (!name || !phone || !address) {
+        alert("Please fill in your Name, Mobile Number, and Delivery Address.");
+        return;
+      }
+
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      const totalAmount = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
+
+      const itemLines = cart.map((item, i) => {
+        const lineTotal = item.qty * item.price;
+        return `${i + 1}. ${item.name} (x${item.qty}) - ₹${lineTotal.toLocaleString("en-IN")}`;
+      }).join("\n");
+
+      const message =
+`*New Order - Sri Haridra Collections*
+Store: ${STORE_ADDRESS}
+
+*Customer Details:*
+Name: ${name}
+Phone: ${phone}
+Address: ${address}
+
+*Order Items:*
+${itemLines}
+
+*Total Items:* ${totalItems}
+*Total Amount:* ₹${totalAmount.toLocaleString("en-IN")}`;
+
+      const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+      window.open(url, "_blank");
+    }
+
+    renderCategoryTabs();
+    renderCart();
+    loadProducts();
+  </script>
+</body>
+</html>
